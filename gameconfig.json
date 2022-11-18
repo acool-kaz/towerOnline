@@ -1,0 +1,103 @@
+{
+    "game_set": [
+        {
+            "player_count": 5,
+            "player_set": {
+                "townfolks": 3,
+                "outsiders": 0,
+                "minions": 1,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 6,
+            "player_set": {
+                "townfolks": 3,
+                "outsiders": 1,
+                "minions": 1,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 7,
+            "player_set": {
+                "townfolks": 4,
+                "outsiders": 1,
+                "minions": 1,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 8,
+            "player_set": {
+                "townfolks": 4,
+                "outsiders": 1,
+                "minions": 2,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 9,
+            "player_set": {
+                "townfolks": 4,
+                "outsiders": 2,
+                "minions": 2,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 10,
+            "player_set": {
+                "townfolks": 5,
+                "outsiders": 2,
+                "minions": 2,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 11,
+            "player_set": {
+                "townfolks": 5,
+                "outsiders": 2,
+                "minions": 3,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 12,
+            "player_set": {
+                "townfolks": 6,
+                "outsiders": 2,
+                "minions": 3,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 13,
+            "player_set": {
+                "townfolks": 6,
+                "outsiders": 2,
+                "minions": 4,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 14,
+            "player_set": {
+                "townfolks": 7,
+                "outsiders": 2,
+                "minions": 4,
+                "demon": 1
+            }
+        },
+        {
+            "player_count": 15,
+            "player_set": {
+                "townfolks": 8,
+                "outsiders": 2,
+                "minions": 4,
+                "demon": 1
+            }
+        }
+    ]
+}
