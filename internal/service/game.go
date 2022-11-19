@@ -58,11 +58,6 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 		}
 	}
 	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
 	return s.stor.ChangePlayers(game)
 }
 
