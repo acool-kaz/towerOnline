@@ -103,14 +103,12 @@ func (s *GameService) SetRoles(game *models.Game) error {
 		if set.PlayerCount == len(game.Players) {
 			randPlayersIndex := rand.Perm(set.PlayerCount)
 			i := 0
-			// random demons
 			randDemons := rand.Perm(len(s.config.Game.FirstPack.Demons))
 			for _, demonsIndex := range randDemons[:set.PlayerSet.Demon] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Demons[demonsIndex].Role
 				i++
 			}
 
-			// random minions
 			randMinions := rand.Perm(len(s.config.Game.FirstPack.Minions))
 			for _, minionsIndex := range randMinions[:set.PlayerSet.Minions] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Minions[minionsIndex].Role
@@ -122,20 +120,28 @@ func (s *GameService) SetRoles(game *models.Game) error {
 				set.PlayerSet.Townfolks -= 2
 			}
 
-			// random outsiders
 			randOutsiders := rand.Perm(len(s.config.Game.FirstPack.Outsiders))
+			randTownfolks := rand.Perm(len(s.config.Game.FirstPack.Townsfolks))
 			for _, outsidersIndex := range randOutsiders[:set.PlayerSet.Outsiders] {
+				if s.config.Game.FirstPack.Outsiders[outsidersIndex].Role == "Drunk" {
+					game.Players[randPlayersIndex[i]].IsPoison = true
+					game.Players[randPlayersIndex[i]].SubRole = s.config.Game.FirstPack.Outsiders[outsidersIndex].Role
+					game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[len(randTownfolks)-1].Role
+					i++
+					continue
+				}
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Outsiders[outsidersIndex].Role
 				i++
 			}
 
-			// random townfolks
-			randTownfolks := rand.Perm(len(s.config.Game.FirstPack.Townsfolks))
 			for _, townFolksIndex := range randTownfolks[:set.PlayerSet.Townfolks] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Role
 				i++
 			}
 		}
+	}
+	if err := s.stor.ChangePlayers(*game); err != nil {
+		return err
 	}
 	return nil
 }
