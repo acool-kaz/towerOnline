@@ -9,10 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-const uri = "mongodb+srv://acool:akilzhan2001@cluster0.ts7t1r3.mongodb.net/?retryWrites=true&w=majority"
-
 func NewMognoDb(conf *config.Config) (*mongo.Database, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(conf.Mongo.Uri))
 	if err != nil {
 		return nil, err
 	}

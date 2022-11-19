@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"github.com/acool-kaz/towerOnline/internal/config"
 	"github.com/acool-kaz/towerOnline/internal/models"
@@ -10,9 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var ErrGame = errors.New("game error")
-var ErrPlayersNotEnough = errors.New("not enough players to start game")
-var ErrPlayersTooMany = errors.New("too many players in game")
+var (
+	ErrGame             = errors.New("game error")
+	ErrPlayersNotEnough = errors.New("not enough players to start game")
+	ErrPlayersTooMany   = errors.New("too many players in game")
+)
 
 type Game interface {
 	CreateGame(game models.Game) error
@@ -20,6 +23,7 @@ type Game interface {
 	LeaveGame(user models.User, groupChatId int64) error
 	DeleteGame(groupChatId int64) error
 	StartNewGame(groupChatId int64) (models.Game, error)
+	SetRoles(game *models.Game) error
 }
 
 type GameService struct {
@@ -49,10 +53,15 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 		return err
 	}
 	for _, p := range game.Players {
-		if p.User.ID == user.ID {
+		if p.User.TelegramId == user.TelegramId {
 			return fmt.Errorf("%w: user exist in game room", ErrGame)
 		}
 	}
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
 	game.Players = append(game.Players, models.Player{User: user})
 	return s.stor.ChangePlayers(game)
 }
@@ -63,7 +72,7 @@ func (s *GameService) LeaveGame(user models.User, groupChatId int64) error {
 		return err
 	}
 	for i, p := range game.Players {
-		if p.User.ID == user.ID {
+		if p.User.TelegramId == user.TelegramId {
 			game.Players = append(game.Players[:i], game.Players[i+1:]...)
 			break
 		}
@@ -80,11 +89,62 @@ func (s *GameService) StartNewGame(groupChatId int64) (models.Game, error) {
 	if err != nil {
 		return models.Game{}, err
 	}
-	// if len(game.Players) < s.config.GameSet[0].PlayerCount {
-	// 	return models.Game{}, ErrPlayersNotEnough
-	// }
-	// if len(game.Players) > s.config.GameSet[len(s.config.GameSet)-1].PlayerCount {
-	// 	return models.Game{}, ErrPlayersTooMany
-	// }
+	if len(game.Players) < s.config.Game.GameSet[0].PlayerCount {
+		return models.Game{}, ErrPlayersNotEnough
+	}
+	if len(game.Players) > s.config.Game.GameSet[len(s.config.Game.GameSet)-1].PlayerCount {
+		return models.Game{}, ErrPlayersTooMany
+	}
 	return game, nil
+}
+
+func (s *GameService) SetRoles(game *models.Game) error {
+	for _, set := range s.config.Game.GameSet {
+		if set.PlayerCount == len(game.Players) {
+			randPlayersIndex := rand.Perm(set.PlayerCount)
+			i := 0
+			// random demons
+			randDemons := rand.Perm(len(s.config.Game.FirstPack.Demons))
+			for _, demonsIndex := range randDemons[:set.PlayerSet.Demon] {
+				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Demons[demonsIndex].Role
+				i++
+			}
+
+			// random minions
+			randMinions := rand.Perm(len(s.config.Game.FirstPack.Minions))
+			for _, minionsIndex := range randMinions[:set.PlayerSet.Minions] {
+				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Minions[minionsIndex].Role
+				i++
+			}
+
+			if findRole(game.Players, "Baron") {
+				set.PlayerSet.Outsiders += 2
+				set.PlayerSet.Townfolks -= 2
+			}
+
+			// random outsiders
+			randOutsiders := rand.Perm(len(s.config.Game.FirstPack.Outsiders))
+			for _, outsidersIndex := range randOutsiders[:set.PlayerSet.Outsiders] {
+				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Outsiders[outsidersIndex].Role
+				i++
+			}
+
+			// random townfolks
+			randTownfolks := rand.Perm(len(s.config.Game.FirstPack.Townsfolks))
+			for _, townFolksIndex := range randTownfolks[:set.PlayerSet.Townfolks] {
+				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Role
+				i++
+			}
+		}
+	}
+	return nil
+}
+
+func findRole(allPlayers []models.Player, role string) bool {
+	for _, p := range allPlayers {
+		if p.Role == role {
+			return true
+		}
+	}
+	return false
 }

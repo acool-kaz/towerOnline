@@ -67,7 +67,7 @@ func (s *GameStorage) GetOne(groupChatId int64) (models.Game, error) {
 
 func (s *GameStorage) ChangePlayers(game models.Game) error {
 	coll := s.db.Collection("games")
-	filter := bson.D{primitive.E{Key: "_id", Value: game.ID}}
+	filter := bson.D{primitive.E{Key: "group_chat_id", Value: game.GroupChatId}}
 	update := bson.D{primitive.E{Key: "$set", Value: bson.D{
 		primitive.E{Key: "players", Value: game.Players},
 	}}}

@@ -14,7 +14,25 @@ type Config struct {
 	Telegram struct {
 		Token string `env:"TG-TOKEN" env-required:"true"`
 	}
-	GameSet []GameConfig `json:"game_set"`
+	Mongo struct {
+		Uri string `env:"URI" env-required:"true"`
+	}
+	Game struct {
+		GameSet   []GameConfig `json:"game_set"`
+		FirstPack Pack         `json:"first_pack"`
+	} `json:"game"`
+}
+
+type Pack struct {
+	Townsfolks []Profile `json:"townsfolks"`
+	Outsiders  []Profile `json:"outsiders"`
+	Minions    []Profile `json:"minions"`
+	Demons     []Profile `json:"demons"`
+}
+
+type Profile struct {
+	Role        string `json:"role"`
+	Description string `json:"description"`
 }
 
 type GameConfig struct {
@@ -24,13 +42,15 @@ type GameConfig struct {
 		Outsiders int `json:"outsiders"`
 		Minions   int `json:"minions"`
 		Demon     int `json:"demon"`
-	}
+	} `json:"player_set"`
 }
 
-var config *Config
-var once sync.Once
+var (
+	config *Config
+	once   sync.Once
+)
 
-func GetConfig(path string) *Config {
+func GetConfig() *Config {
 	once.Do(func() {
 		config = &Config{}
 		if err := cleanenv.ReadEnv(config); err != nil {
@@ -39,7 +59,13 @@ func GetConfig(path string) *Config {
 			log.Print(help)
 			log.Fatal(err)
 		}
-		if err := cleanenv.ReadConfig(path, config); err != nil {
+		if err := cleanenv.ReadConfig("./gameconfig.json", config); err != nil {
+			helpText := "Tower Clock Online Telegram Bot"
+			help, _ := cleanenv.GetDescription(config, &helpText)
+			log.Print(help)
+			log.Fatal(err)
+		}
+		if err := cleanenv.ReadConfig("./1pack.json", config); err != nil {
 			helpText := "Tower Clock Online Telegram Bot"
 			help, _ := cleanenv.GetDescription(config, &helpText)
 			log.Print(help)

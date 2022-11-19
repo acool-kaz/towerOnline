@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/acool-kaz/towerOnline/internal/models"
 	"github.com/acool-kaz/towerOnline/internal/service"
@@ -46,7 +47,7 @@ func (h *Handler) startNewGameHandler(c telebot.Context) error {
 		h.logger.Info(err)
 		return c.Send("Набор в игру уже начался!")
 	}
-	return c.Send("Начинаем набор!", inline)
+	return c.Send(fmt.Sprintf("Начинаем набор! Начните беседу со мной @%s", h.bot.Me.Username), inline)
 }
 
 func (h *Handler) onCallBackHandler(c telebot.Context) error {
@@ -104,6 +105,18 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		}
 		for _, p := range game.Players {
 			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, "Игра начинается!"); err != nil {
+				return err
+			}
+		}
+		if err := h.service.Game.SetRoles(&game); err != nil {
+			if err := h.service.Game.DeleteGame(callback.Message.Chat.ID); err != nil {
+				return err
+			}
+			h.logger.Info(err)
+			return c.Send("Что-то пошло не так. Сори!")
+		}
+		for _, p := range game.Players {
+			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твоя роль - %s", p.Role)); err != nil {
 				return err
 			}
 		}
