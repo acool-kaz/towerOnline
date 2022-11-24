@@ -60,6 +60,14 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		}
 		if err := h.service.Game.JoinGame(user, callback.Message.Chat.ID); err != nil {
 			if errors.Is(err, service.ErrGame) {
+				h.logger.Info(err)
+				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
+					return err
+				}
+				return nil
+			}
+			if errors.Is(err, service.ErrPlayersTooMany) {
+				h.logger.Info(err)
 				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
 					return err
 				}
@@ -77,6 +85,7 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		}
 		if err := h.service.Game.LeaveGame(user, callback.Message.Chat.ID); err != nil {
 			if errors.Is(err, service.ErrGame) {
+				h.logger.Info(err)
 				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
 					return err
 				}
@@ -93,10 +102,6 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 			if errors.Is(err, service.ErrPlayersNotEnough) {
 				h.logger.Info(err)
 				return c.Send("Недостаточно игроков чтобы начать!")
-			}
-			if errors.Is(err, service.ErrPlayersTooMany) {
-				h.logger.Info(err)
-				return c.Send("Cлишком много игроков чтобы начать!")
 			}
 			return err
 		}

@@ -52,6 +52,9 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 	if err != nil {
 		return err
 	}
+	if len(game.Players) == s.config.Game.GameSet[len(s.config.Game.GameSet)-1].PlayerCount {
+		return ErrPlayersTooMany
+	}
 	for _, p := range game.Players {
 		if p.User.TelegramId == user.TelegramId {
 			return fmt.Errorf("%w: user exist in game room", ErrGame)
@@ -86,9 +89,6 @@ func (s *GameService) StartNewGame(groupChatId int64) (models.Game, error) {
 	}
 	if len(game.Players) < s.config.Game.GameSet[0].PlayerCount {
 		return models.Game{}, ErrPlayersNotEnough
-	}
-	if len(game.Players) > s.config.Game.GameSet[len(s.config.Game.GameSet)-1].PlayerCount {
-		return models.Game{}, ErrPlayersTooMany
 	}
 	return game, nil
 }
