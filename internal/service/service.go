@@ -8,11 +8,13 @@ import (
 type Service struct {
 	User
 	Game
+	FirstPack
 }
 
 func NewService(storage *storage.Storage, c *config.Config) *Service {
 	return &Service{
-		User: newUserService(storage.User),
-		Game: newGameService(storage.Game, c),
+		User:      newUserService(storage.User),
+		Game:      newGameService(storage.Game, c),
+		FirstPack: newFirstPackService(c),
 	}
 }

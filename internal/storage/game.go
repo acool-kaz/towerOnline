@@ -12,7 +12,6 @@ import (
 type Game interface {
 	CreateGame(game models.Game) error
 	GetOne(groupChatId int64) (models.Game, error)
-	// FindPlayer(telegramId int64) (models.Player, error)
 	ChangePlayers(game models.Game) error
 	DeleteGame(groupChatId int64) error
 }
@@ -50,25 +49,14 @@ func (s *GameStorage) GetOne(groupChatId int64) (models.Game, error) {
 	return game, nil
 }
 
-// func (s *GameStorage) FindPlayer(telegramId int64) (models.Player, error) {
-// 	var player models.Player
-// 	coll := s.db.Collection("games")
-// 	err := coll.FindOne(context.TODO(), bson.D{
-// 		primitive.E{
-// 			Key:   "telegram_id",
-// 			Value: telegramId,
-// 		},
-// 	}).Decode(&player)
-// 	if err != nil {
-// 		return models.Player{}, err
-// 	}
-// 	return player, nil
-// }
-
 func (s *GameStorage) ChangePlayers(game models.Game) error {
 	coll := s.db.Collection("games")
 	filter := bson.D{primitive.E{Key: "group_chat_id", Value: game.GroupChatId}}
 	update := bson.D{primitive.E{Key: "$set", Value: bson.D{
+		primitive.E{Key: "townfolks", Value: game.Townfolks},
+		primitive.E{Key: "outsiders", Value: game.Outsiders},
+		primitive.E{Key: "minions", Value: game.Minions},
+		primitive.E{Key: "demons", Value: game.Demons},
 		primitive.E{Key: "players", Value: game.Players},
 	}}}
 	return coll.FindOneAndUpdate(context.TODO(), filter, update).Err()

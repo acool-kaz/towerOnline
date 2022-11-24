@@ -121,11 +121,17 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 			return c.Send("Что-то пошло не так. Сори!")
 		}
 		for _, p := range game.Players {
-			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твоя роль - %s", p.Role)); err != nil {
+			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твоя роль - %s\nОписание роли - %s", p.Role, p.RoleDescription)); err != nil {
 				return err
 			}
 		}
-		return c.Send("Игра начинается!")
+		if err := c.Send("Игра начинается!"); err != nil {
+			return err
+		}
+		if err := h.service.FirstPack.Start(game, h.bot); err != nil {
+			return err
+		}
+		return nil
 	case "\fdelete":
 		if err := c.Delete(); err != nil {
 			return err
