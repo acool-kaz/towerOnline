@@ -129,6 +129,15 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 			return err
 		}
 		if err := h.service.FirstPack.Start(game, h.bot); err != nil {
+			if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
+				return err
+			}
+			return err
+		}
+		if err := c.Send("Игра закончилась!"); err != nil {
+			return err
+		}
+		if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
 			return err
 		}
 		return nil
