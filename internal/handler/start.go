@@ -29,6 +29,7 @@ func (h *Handler) startHandler(c telebot.Context) error {
 }
 
 func (h *Handler) ruleHandler(c telebot.Context) error {
+	// TODO
 	return c.Send("Правила!")
 }
 
@@ -65,6 +66,12 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 				}
 				return nil
 			}
+			if errors.Is(err, service.ErrPlayersTooMany) {
+				if _, err := h.bot.Send(callback.Sender, "Cорри лобби забито!"); err != nil {
+					return err
+				}
+				return nil
+			}
 			return err
 		}
 		if _, err := h.bot.Send(callback.Sender, "Ты в игре!"); err != nil {
@@ -94,17 +101,20 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 				h.logger.Info(err)
 				return c.Send("Недостаточно игроков чтобы начать!")
 			}
-			if errors.Is(err, service.ErrPlayersTooMany) {
-				h.logger.Info(err)
-				return c.Send("Cлишком много игроков чтобы начать!")
-			}
 			return err
 		}
 		if err := c.Delete(); err != nil {
 			return err
 		}
+		packImg := &telebot.Photo{
+			File: telebot.FromDisk("packs/1.png"),
+		}
+		fmt.Println(packImg.FilePath)
 		for _, p := range game.Players {
 			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, "Игра начинается!"); err != nil {
+				return err
+			}
+			if _, err := h.bot.SendAlbum(&telebot.User{ID: p.User.TelegramId}, telebot.Album{packImg}); err != nil {
 				return err
 			}
 		}
@@ -120,6 +130,7 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 				return err
 			}
 		}
+
 		return c.Send("Игра начинается!")
 	case "\fdelete":
 		if err := c.Delete(); err != nil {
@@ -132,3 +143,7 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 	}
 	return nil
 }
+
+// func (h *Handler) onCallBackInGameHandler(c telebot.Context) error {
+// 	callback := c.Callback()
+// }

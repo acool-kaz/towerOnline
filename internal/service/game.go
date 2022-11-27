@@ -52,12 +52,16 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 	if err != nil {
 		return err
 	}
+	if len(game.Players) == s.config.Game.GameSet[len(s.config.Game.GameSet)-1].PlayerCount {
+		return ErrPlayersTooMany
+	}
 	for _, p := range game.Players {
 		if p.User.TelegramId == user.TelegramId {
 			return fmt.Errorf("%w: user exist in game room", ErrGame)
 		}
 	}
 	game.Players = append(game.Players, models.Player{User: user})
+
 	return s.stor.ChangePlayers(game)
 }
 
