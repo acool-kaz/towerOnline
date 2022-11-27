@@ -108,8 +108,14 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		if err := c.Delete(); err != nil {
 			return err
 		}
+		packImg := &telebot.Photo{
+			File: telebot.FromDisk("packs/1.png"),
+		}
 		for _, p := range game.Players {
 			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, "Игра начинается!"); err != nil {
+				return err
+			}
+			if _, err := h.bot.SendAlbum(&telebot.User{ID: p.User.TelegramId}, telebot.Album{packImg}); err != nil {
 				return err
 			}
 		}
