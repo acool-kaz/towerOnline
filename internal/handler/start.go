@@ -29,7 +29,6 @@ func (h *Handler) startHandler(c telebot.Context) error {
 }
 
 func (h *Handler) ruleHandler(c telebot.Context) error {
-	// TODO
 	return c.Send("Правила!")
 }
 
@@ -61,13 +60,15 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		}
 		if err := h.service.Game.JoinGame(user, callback.Message.Chat.ID); err != nil {
 			if errors.Is(err, service.ErrGame) {
+				h.logger.Info(err)
 				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
 					return err
 				}
 				return nil
 			}
 			if errors.Is(err, service.ErrPlayersTooMany) {
-				if _, err := h.bot.Send(callback.Sender, "Cорри лобби забито!"); err != nil {
+				h.logger.Info(err)
+				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
 					return err
 				}
 				return nil
@@ -84,6 +85,7 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		}
 		if err := h.service.Game.LeaveGame(user, callback.Message.Chat.ID); err != nil {
 			if errors.Is(err, service.ErrGame) {
+				h.logger.Info(err)
 				if _, err := h.bot.Send(callback.Sender, "Ты уже в игре!"); err != nil {
 					return err
 				}
@@ -106,15 +108,8 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		if err := c.Delete(); err != nil {
 			return err
 		}
-		packImg := &telebot.Photo{
-			File: telebot.FromDisk("packs/1.png"),
-		}
-		fmt.Println(packImg.FilePath)
 		for _, p := range game.Players {
 			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, "Игра начинается!"); err != nil {
-				return err
-			}
-			if _, err := h.bot.SendAlbum(&telebot.User{ID: p.User.TelegramId}, telebot.Album{packImg}); err != nil {
 				return err
 			}
 		}
@@ -126,12 +121,26 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 			return c.Send("Что-то пошло не так. Сори!")
 		}
 		for _, p := range game.Players {
-			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твоя роль - %s", p.Role)); err != nil {
+			if _, err := h.bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твоя роль - %s\nОписание роли - %s", p.Role, p.RoleDescription)); err != nil {
 				return err
 			}
 		}
-
-		return c.Send("Игра начинается!")
+		if err := c.Send("Игра начинается!"); err != nil {
+			return err
+		}
+		if err := h.service.FirstPack.Start(game, h.bot); err != nil {
+			if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
+				return err
+			}
+			return err
+		}
+		if err := c.Send("Игра закончилась!"); err != nil {
+			return err
+		}
+		if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
+			return err
+		}
+		return nil
 	case "\fdelete":
 		if err := c.Delete(); err != nil {
 			return err
@@ -143,7 +152,3 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 	}
 	return nil
 }
-
-// func (h *Handler) onCallBackInGameHandler(c telebot.Context) error {
-// 	callback := c.Callback()
-// }

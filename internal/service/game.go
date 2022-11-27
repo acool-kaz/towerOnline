@@ -61,7 +61,11 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 		}
 	}
 	game.Players = append(game.Players, models.Player{User: user})
-
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
+	game.Players = append(game.Players, models.Player{User: user})
 	return s.stor.ChangePlayers(game)
 }
 
@@ -91,9 +95,6 @@ func (s *GameService) StartNewGame(groupChatId int64) (models.Game, error) {
 	if len(game.Players) < s.config.Game.GameSet[0].PlayerCount {
 		return models.Game{}, ErrPlayersNotEnough
 	}
-	if len(game.Players) > s.config.Game.GameSet[len(s.config.Game.GameSet)-1].PlayerCount {
-		return models.Game{}, ErrPlayersTooMany
-	}
 	return game, nil
 }
 
@@ -105,12 +106,16 @@ func (s *GameService) SetRoles(game *models.Game) error {
 			randDemons := rand.Perm(len(s.config.Game.FirstPack.Demons))
 			for _, demonsIndex := range randDemons[:set.PlayerSet.Demon] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Demons[demonsIndex].Role
+				game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Demons[demonsIndex].Description
+				game.Demons = append(game.Demons, game.Players[randPlayersIndex[i]])
 				i++
 			}
 
 			randMinions := rand.Perm(len(s.config.Game.FirstPack.Minions))
 			for _, minionsIndex := range randMinions[:set.PlayerSet.Minions] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Minions[minionsIndex].Role
+				game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Minions[minionsIndex].Description
+				game.Minions = append(game.Minions, game.Players[randPlayersIndex[i]])
 				i++
 			}
 
@@ -125,16 +130,23 @@ func (s *GameService) SetRoles(game *models.Game) error {
 				if s.config.Game.FirstPack.Outsiders[outsidersIndex].Role == "Drunk" {
 					game.Players[randPlayersIndex[i]].IsPoison = true
 					game.Players[randPlayersIndex[i]].SubRole = s.config.Game.FirstPack.Outsiders[outsidersIndex].Role
+					game.Players[randPlayersIndex[i]].SubRoleDescription = s.config.Game.FirstPack.Outsiders[outsidersIndex].Description
 					game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[len(randTownfolks)-1].Role
+					game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Townsfolks[len(randTownfolks)-1].Description
+					game.Outsiders = append(game.Outsiders, game.Players[randPlayersIndex[i]])
 					i++
 					continue
 				}
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Outsiders[outsidersIndex].Role
+				game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Outsiders[outsidersIndex].Description
+				game.Outsiders = append(game.Outsiders, game.Players[randPlayersIndex[i]])
 				i++
 			}
 
 			for _, townFolksIndex := range randTownfolks[:set.PlayerSet.Townfolks] {
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Role
+				game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Description
+				game.Townfolks = append(game.Townfolks, game.Players[randPlayersIndex[i]])
 				i++
 			}
 		}

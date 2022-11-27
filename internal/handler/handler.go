@@ -38,7 +38,6 @@ func (h *Handler) StartBot() {
 	h.bot.Handle(&ruleBtn, h.ruleHandler)
 	h.bot.Handle(&startGameBtn, h.startNewGameHandler)
 	h.bot.Handle(telebot.OnCallback, h.onCallBackHandler)
-	// h.bot.Handle("/vote", h.onCallBackInGameHandler)
 
 	h.bot.Start()
 }
