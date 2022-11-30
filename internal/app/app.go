@@ -35,10 +35,10 @@ func (a *App) Run() {
 	if err != nil {
 		a.logger.Fatal(err)
 	}
-
+	channel := make(chan string, 1)
 	storage := storage.NewStorage(db)
-	service := service.NewService(storage, a.config)
-	handler := handler.NewHandler(bot, a.config, a.logger, service)
+	service := service.NewService(storage, a.config, channel)
+	handler := handler.NewHandler(bot, a.config, a.logger, service, channel)
 
 	a.logger.Print("start bot")
 	handler.StartBot()

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/acool-kaz/towerOnline/internal/models"
 	"github.com/acool-kaz/towerOnline/internal/service"
@@ -52,6 +53,11 @@ func (h *Handler) startNewGameHandler(c telebot.Context) error {
 
 func (h *Handler) onCallBackHandler(c telebot.Context) error {
 	callback := c.Callback()
+	if strings.Contains(callback.Data, "poisoner-") {
+		h.channel <- strings.Split(callback.Data, "poisoner-")[1]
+	} else if strings.Contains(callback.Data, "demon-") {
+		h.channel <- strings.Split(callback.Data, "demon-")[1]
+	}
 	switch callback.Data {
 	case "\fadd":
 		user, err := h.service.User.GetOne(callback.Sender.ID)
@@ -143,9 +149,9 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		if err := c.Send("Игра закончилась!"); err != nil {
 			return err
 		}
-		if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
-			return err
-		}
+		// if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
+		// 	return err
+		// }
 		return nil
 	case "\fdelete":
 		if err := c.Delete(); err != nil {

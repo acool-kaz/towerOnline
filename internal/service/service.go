@@ -11,10 +11,10 @@ type Service struct {
 	FirstPack
 }
 
-func NewService(storage *storage.Storage, c *config.Config) *Service {
+func NewService(storage *storage.Storage, c *config.Config, channel chan string) *Service {
 	return &Service{
 		User:      newUserService(storage.User),
 		Game:      newGameService(storage.Game, c),
-		FirstPack: newFirstPackService(c),
+		FirstPack: newFirstPackService(storage.Game, c, channel),
 	}
 }

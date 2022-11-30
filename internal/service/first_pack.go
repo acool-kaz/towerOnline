@@ -6,40 +6,159 @@ import (
 
 	"github.com/acool-kaz/towerOnline/internal/config"
 	"github.com/acool-kaz/towerOnline/internal/models"
+	"github.com/acool-kaz/towerOnline/internal/storage"
 	"gopkg.in/telebot.v3"
 )
 
 type FirstPack interface {
 	Start(game models.Game, bot *telebot.Bot) error
-	Washerwoman(game models.Game, bot *telebot.Bot) error
-	Librarian(game models.Game, bot *telebot.Bot) error
-	Investigator(game models.Game, bot *telebot.Bot) error
-	Chef(game models.Game, bot *telebot.Bot) error
-	Empath(game models.Game, bot *telebot.Bot) error
-	Imp(game models.Game, bot *telebot.Bot) error
+	zeroNight(game models.Game, bot *telebot.Bot, firstPack config.Pack) error
+	otherNight(game models.Game, bot *telebot.Bot) error
+	poisoner(game models.Game, bot *telebot.Bot) error
+	imp(game models.Game, bot *telebot.Bot) error
+	washerwoman(game models.Game, bot *telebot.Bot) error
+	librarian(game models.Game, bot *telebot.Bot) error
+	investigator(game models.Game, bot *telebot.Bot) error
+	empath(game models.Game, bot *telebot.Bot) error
+	chef(game models.Game, bot *telebot.Bot) error
 }
 
 type FirstPackService struct {
-	cfg *config.Config
+	stor    storage.Game
+	cfg     *config.Config
+	channel chan string
 }
 
-func newFirstPackService(cfg *config.Config) *FirstPackService {
+func newFirstPackService(stor storage.Game, cfg *config.Config, channel chan string) *FirstPackService {
 	return &FirstPackService{
-		cfg: cfg,
+		stor:    stor,
+		cfg:     cfg,
+		channel: channel,
 	}
 }
 
 func (s *FirstPackService) Start(game models.Game, bot *telebot.Bot) error {
-	s.Washerwoman(game, bot)
-	s.Librarian(game, bot)
-	s.Investigator(game, bot)
-	s.Chef(game, bot)
-	s.Empath(game, bot)
-	s.Imp(game, bot)
+	var err error
+	if err = s.zeroNight(game, bot, s.cfg.Game.FirstPack); err != nil {
+		return err
+	}
+	// for {
+	// 	if err := s.otherNight(game, bot); err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 
-func (s *FirstPackService) Washerwoman(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) zeroNight(game models.Game, bot *telebot.Bot, firstPack config.Pack) error {
+	var err error
+	if err = minionInfo(game, bot); err != nil {
+		return err
+	}
+	if err = demonInfo(game, bot, firstPack); err != nil {
+		return err
+	}
+	if err = s.poisoner(game, bot); err != nil {
+		return err
+	}
+	if err = s.washerwoman(game, bot); err != nil {
+		return err
+	}
+	if err = s.librarian(game, bot); err != nil {
+		return err
+	}
+	if err = s.investigator(game, bot); err != nil {
+		return err
+	}
+	if err = s.chef(game, bot); err != nil {
+		return err
+	}
+	if err = s.empath(game, bot); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *FirstPackService) otherNight(game models.Game, bot *telebot.Bot) error {
+	return nil
+}
+
+func minionInfo(game models.Game, bot *telebot.Bot) error {
+	for _, p := range game.Minions {
+		if _, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, fmt.Sprintf("Твой демон - %s", game.Demons[0].User.Username)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func demonInfo(game models.Game, bot *telebot.Bot, firstPack config.Pack) error {
+	for _, p := range game.Minions {
+		if _, err := bot.Send(&telebot.User{ID: game.Demons[0].User.TelegramId}, fmt.Sprintf("Твои миньоны - %s", p.User.Username)); err != nil {
+			return err
+		}
+	}
+	var allRoles []string
+	for _, r := range firstPack.Townsfolks {
+		allRoles = append(allRoles, r.Role)
+	}
+	for _, r := range firstPack.Outsiders {
+		allRoles = append(allRoles, r.Role)
+	}
+	var notInGame []string
+	for _, role := range allRoles {
+		if !isInArray(role, game.Players) {
+			notInGame = append(notInGame, role)
+		}
+	}
+	randNotInGame := rand.Perm(len(notInGame))
+	if _, err := bot.Send(&telebot.User{ID: game.Demons[0].User.TelegramId}, "Свободные роли:"); err != nil {
+		return err
+	}
+	for _, index := range randNotInGame[:3] {
+		if _, err := bot.Send(&telebot.User{ID: game.Demons[0].User.TelegramId}, notInGame[index]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isInArray(str string, arr []models.Player) bool {
+	for _, s := range arr {
+		if str == s.Role {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *FirstPackService) poisoner(game models.Game, bot *telebot.Bot) error {
+	inline := &telebot.ReplyMarkup{}
+	rows := []telebot.Row{}
+	for _, p := range game.Players {
+		rows = append(rows, telebot.Row{inline.Data(p.User.Username, "poisoner-"+p.User.Username)})
+	}
+	inline.Inline(rows...)
+	for _, p := range game.Minions {
+		if p.Role == "Poisoner" {
+			if _, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Можешь отравить одного!", inline); err != nil {
+				return err
+			}
+			poisonUser := <-s.channel
+			for i, p := range game.Players {
+				if p.User.Username == poisonUser {
+					game.Players[i].IsPoison = true
+				}
+			}
+			if err := s.stor.ChangePlayers(game); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *FirstPackService) washerwoman(game models.Game, bot *telebot.Bot) error {
 	var (
 		info            string
 		truePlayerInfo  models.Player
@@ -74,7 +193,7 @@ func (s *FirstPackService) Washerwoman(game models.Game, bot *telebot.Bot) error
 	return nil
 }
 
-func (s *FirstPackService) Librarian(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) librarian(game models.Game, bot *telebot.Bot) error {
 	var (
 		info            string
 		truePlayerInfo  models.Player
@@ -104,7 +223,7 @@ func (s *FirstPackService) Librarian(game models.Game, bot *telebot.Bot) error {
 	return nil
 }
 
-func (s *FirstPackService) Investigator(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) investigator(game models.Game, bot *telebot.Bot) error {
 	var (
 		info            string
 		truePlayerInfo  models.Player
@@ -134,7 +253,7 @@ func (s *FirstPackService) Investigator(game models.Game, bot *telebot.Bot) erro
 	return nil
 }
 
-func (s *FirstPackService) Chef(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) chef(game models.Game, bot *telebot.Bot) error {
 	var (
 		count int
 		info  string
@@ -163,7 +282,7 @@ func (s *FirstPackService) Chef(game models.Game, bot *telebot.Bot) error {
 	return nil
 }
 
-func (s *FirstPackService) Empath(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) empath(game models.Game, bot *telebot.Bot) error {
 	var (
 		count int
 		info  string
@@ -211,7 +330,7 @@ func (s *FirstPackService) Empath(game models.Game, bot *telebot.Bot) error {
 	return nil
 }
 
-func (s *FirstPackService) Imp(game models.Game, bot *telebot.Bot) error {
+func (s *FirstPackService) imp(game models.Game, bot *telebot.Bot) error {
 	inline := &telebot.ReplyMarkup{}
 	rows := []telebot.Row{}
 	for _, p := range game.Players {

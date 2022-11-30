@@ -18,15 +18,17 @@ type Handler struct {
 	config        *config.Config
 	logger        *logger.Logger
 	service       *service.Service
+	channel       chan string
 	groupMainMenu *telebot.ReplyMarkup
 }
 
-func NewHandler(b *telebot.Bot, c *config.Config, l *logger.Logger, srv *service.Service) *Handler {
+func NewHandler(b *telebot.Bot, c *config.Config, l *logger.Logger, srv *service.Service, channel chan string) *Handler {
 	return &Handler{
 		bot:           b,
 		config:        c,
 		logger:        l,
 		service:       srv,
+		channel:       channel,
 		groupMainMenu: groupMainMenu,
 	}
 }
