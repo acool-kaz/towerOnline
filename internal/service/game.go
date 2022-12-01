@@ -60,15 +60,11 @@ func (s *GameService) JoinGame(user models.User, groupChatId int64) error {
 			return fmt.Errorf("%w: user exist in game room", ErrGame)
 		}
 	}
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
-	game.Players = append(game.Players, models.Player{User: user})
+	for i := 0; i < 6; i++ {
+		newUser := models.Player{User: user}
+		newUser.User.Username = fmt.Sprintf("%d", i+1)
+		game.Players = append(game.Players, newUser)
+	}
 	return s.stor.ChangePlayers(game)
 }
 
@@ -146,11 +142,28 @@ func (s *GameService) SetRoles(game *models.Game) error {
 				i++
 			}
 
+			var fortune bool = false
 			for _, townFolksIndex := range randTownfolks[:set.PlayerSet.Townfolks] {
+				if s.config.Game.FirstPack.Townsfolks[townFolksIndex].Role == "Fortune Teller" {
+					fortune = true
+				}
 				game.Players[randPlayersIndex[i]].Role = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Role
 				game.Players[randPlayersIndex[i]].RoleDescription = s.config.Game.FirstPack.Townsfolks[townFolksIndex].Description
 				game.Townfolks = append(game.Townfolks, game.Players[randPlayersIndex[i]])
 				i++
+			}
+
+			if fortune {
+				goodPlayers := []models.Player{}
+				goodPlayers = append(goodPlayers, game.Outsiders...)
+				goodPlayers = append(goodPlayers, game.Townfolks...)
+				randGood := rand.Intn(len(goodPlayers) - 1)
+				for i, p := range game.Players {
+					if p.User.Username == goodPlayers[randGood].User.Username {
+						game.Players[i].FortuneMark = true
+						break
+					}
+				}
 			}
 		}
 	}

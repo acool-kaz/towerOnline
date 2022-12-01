@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/acool-kaz/towerOnline/internal/config"
 	"github.com/acool-kaz/towerOnline/internal/models"
@@ -21,6 +22,7 @@ type FirstPack interface {
 	investigator(game models.Game, bot *telebot.Bot) error
 	empath(game models.Game, bot *telebot.Bot) error
 	chef(game models.Game, bot *telebot.Bot) error
+	fortuneTeller(game models.Game, bot *telebot.Bot) error
 }
 
 type FirstPackService struct {
@@ -74,6 +76,9 @@ func (s *FirstPackService) zeroNight(game models.Game, bot *telebot.Bot, firstPa
 		return err
 	}
 	if err = s.empath(game, bot); err != nil {
+		return err
+	}
+	if err = s.fortuneTeller(game, bot); err != nil {
 		return err
 	}
 	return nil
@@ -132,6 +137,62 @@ func isInArray(str string, arr []models.Player) bool {
 	return false
 }
 
+func (s *FirstPackService) fortuneTeller(game models.Game, bot *telebot.Bot) error {
+	var pickedUsers []models.Player
+	var info string
+	for _, p := range game.Townfolks {
+		if p.Role == "Fortune Teller" {
+			if p.IsDead {
+				return nil
+			}
+			for i := 0; i < 2; i++ {
+				inline := &telebot.ReplyMarkup{}
+				rows := []telebot.Row{}
+				for _, p := range game.Players {
+					if pickedUsers != nil && pickedUsers[0].User.Username == p.User.Username {
+						continue
+					}
+					rows = append(rows, telebot.Row{inline.Data(p.User.Username, "fortune-"+p.User.Username)})
+				}
+				inline.Inline(rows...)
+				message, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Выбирай!", inline)
+				if err != nil {
+					return err
+				}
+				pickedUser := <-s.channel
+				for _, p := range game.Players {
+					if p.User.Username == pickedUser {
+						pickedUsers = append(pickedUsers, p)
+					}
+				}
+				if err := bot.Delete(message); err != nil {
+					return err
+				}
+			}
+			for _, p := range pickedUsers {
+				if p.FortuneMark || p.Role == "Imp" {
+					info = fmt.Sprintf("Среди %s и %s есть демон!", pickedUsers[0].User.Username, pickedUsers[1].User.Username)
+					break
+				}
+			}
+			if info == "" {
+				info = fmt.Sprintf("Среди %s и %s нет демона!", pickedUsers[0].User.Username, pickedUsers[1].User.Username)
+			}
+			if p.IsPoison {
+				if strings.Contains(info, " нет ") {
+					info = strings.ReplaceAll(info, " нет ", " есть ")
+				} else if strings.Contains(info, " есть ") {
+					info = strings.ReplaceAll(info, " есть ", " нет ")
+				}
+			}
+			if _, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, info); err != nil {
+				return err
+			}
+			break
+		}
+	}
+	return nil
+}
 func (s *FirstPackService) poisoner(game models.Game, bot *telebot.Bot) error {
 	inline := &telebot.ReplyMarkup{}
 	rows := []telebot.Row{}
@@ -141,18 +202,29 @@ func (s *FirstPackService) poisoner(game models.Game, bot *telebot.Bot) error {
 	inline.Inline(rows...)
 	for _, p := range game.Minions {
 		if p.Role == "Poisoner" {
-			if _, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Можешь отравить одного!", inline); err != nil {
+			if p.IsDead {
+				return nil
+			}
+			message, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Можешь отравить одного!", inline)
+			if err != nil {
 				return err
 			}
 			poisonUser := <-s.channel
+			if p.IsPoison {
+				return nil
+			}
 			for i, p := range game.Players {
 				if p.User.Username == poisonUser {
 					game.Players[i].IsPoison = true
 				}
 			}
+			if err := bot.Delete(message); err != nil {
+				return err
+			}
 			if err := s.stor.ChangePlayers(game); err != nil {
 				return err
 			}
+			break
 		}
 	}
 	return nil
@@ -291,6 +363,9 @@ func (s *FirstPackService) empath(game models.Game, bot *telebot.Bot) error {
 	)
 	for i, p := range game.Players {
 		if p.Role == "Empath" {
+			if p.IsDead {
+				return nil
+			}
 			index := i
 			for {
 				index--
@@ -338,7 +413,21 @@ func (s *FirstPackService) imp(game models.Game, bot *telebot.Bot) error {
 	}
 	inline.Inline(rows...)
 	for _, p := range game.Demons {
-		if _, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Можешь убить одного!", inline); err != nil {
+		message, err := bot.Send(&telebot.User{ID: p.User.TelegramId}, "Можешь убить одного!", inline)
+		if err != nil {
+			return err
+		}
+		pickedUser := <-s.channel
+		for _, p := range game.Players {
+			if p.User.Username == pickedUser {
+				if p.Role == "Ravenkeeper" {
+					// todo
+				}
+				p.IsDead = true
+				break
+			}
+		}
+		if err := bot.Delete(message); err != nil {
 			return err
 		}
 	}
