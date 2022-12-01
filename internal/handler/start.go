@@ -167,9 +167,9 @@ func (h *Handler) onCallBackHandler(c telebot.Context) error {
 		if err := c.Send("Игра закончилась!"); err != nil {
 			return err
 		}
-		// if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
-		// 	return err
-		// }
+		if err := h.service.Game.DeleteGame(game.GroupChatId); err != nil {
+			return err
+		}
 		return nil
 	case "\fdelete":
 		if err := c.Delete(); err != nil {
